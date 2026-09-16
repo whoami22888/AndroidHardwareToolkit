@@ -2,14 +2,23 @@ package com.android.hardwaretoolkit
 
 import android.Manifest
 import android.os.Build
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.android.hardwaretoolkit.core.*
 import com.android.hardwaretoolkit.usb.UsbManagerBridge
@@ -41,7 +50,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ToolkitApp(requestBluetooth: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val registry = remember { ProviderRegistry() }
     val native = remember { NativeHardwareDetector(context) }
     val usb = remember { UsbManagerBridge(context, registry) }
@@ -64,7 +73,7 @@ private fun ToolkitApp(requestBluetooth: () -> Unit) {
                     NavigationBarItem(
                         selected = tab == index,
                         onClick = { tab = index },
-                        icon = {},
+                        icon = { },
                         label = { Text(label) }
                     )
                 }
