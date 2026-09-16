@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.android.hardwaretoolkit
 
 import android.Manifest
@@ -23,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import com.android.hardwaretoolkit.core.*
 import com.android.hardwaretoolkit.usb.UsbManagerBridge
 
-@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     private val permissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
