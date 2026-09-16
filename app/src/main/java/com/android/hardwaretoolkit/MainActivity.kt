@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.android.hardwaretoolkit.core.*
 import com.android.hardwaretoolkit.usb.UsbManagerBridge
-import kotlinx.coroutines.launch
 
 class MainActivity:ComponentActivity() {
     private val permissions = registerForActivityResult(
@@ -36,18 +35,25 @@ class MainActivity:ComponentActivity() {
 @Composable private fun ToolkitApp(requestBluetooth:()->Unit) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val registry=remember{ProviderRegistry()}
+    val native=remember{NativeHardwareDetector(context)}
     val usb=remember{UsbManagerBridge(context,registry)}
     var revision by remember{mutableIntStateOf(0)}
-    DisposableEffect(Unit){usb.start{revision++};onDispose{usb.stop()}}
+
+    DisposableEffect(Unit){
+        native.detect().forEach(registry::upsert)
+        usb.start{revision++}
+        onDispose{usb.stop()}
+    }
+
     var tab by remember{mutableIntStateOf(0)}
     val tabs=listOf("Dashboard","Providers","Sub-GHz","LF RFID","BLE")
     Scaffold(
-        topBar={TopAppBar(title={Text("Android Hardware Toolkit 0.8.0")})},
+        topBar={TopAppBar(title={Text("Android Hardware Toolkit 0.9.0")})},
         bottomBar={NavigationBar{tabs.forEachIndexed{i,s->
             NavigationBarItem(tab==i,{tab=i},icon={},label={Text(s)})}}}
     ){pad->Box(Modifier.padding(pad).fillMaxSize()){
         when(tab){
-            0->Dashboard()
+            0->Dashboard(registry,revision)
             1->Providers(registry,revision)
             2->RadioPane("Sub-GHz",registry,Capability.SUB_GHZ_RX,Capability.SUB_GHZ_TX)
             3->RadioPane("125/134.2-kHz LF RFID",registry,Capability.LF_RFID_RX,Capability.LF_RFID_TX)
@@ -56,17 +62,19 @@ class MainActivity:ComponentActivity() {
     }}
 }
 
-@Composable private fun Dashboard()=Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
-    Text("v0.8 physical adapter layer",style=MaterialTheme.typography.headlineSmall)
-    Text("Only real providers can enable hardware operations.")
-    Text("Unknown USB devices are shown as USB Host devices, never falsely identified as radios.")
-    Text("Sub-GHz and LF RFID become operational only after a concrete documented adapter driver is installed.")
+@Composable private fun Dashboard(registry:ProviderRegistry,revision:Int)=Column(
+    Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
+    Text("v0.9 native + external hardware layer",style=MaterialTheme.typography.headlineSmall)
+    Text("Phone-native hardware is detected and used through Android APIs; external hardware extends capabilities the phone does not physically expose.")
+    Text("Native providers: ${registry.all().count{it.transport==Transport.PHONE_NATIVE}}")
+    Text("External providers: ${registry.all().count{it.transport!=Transport.PHONE_NATIVE}}")
+    Text("Sub-GHz and LF RFID are not falsely emulated. If the handset lacks the required RF hardware, a compatible physical adapter is required.")
 }
 
 @Composable private fun Providers(registry:ProviderRegistry,revision:Int)=Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
     Text("Detected providers",style=MaterialTheme.typography.headlineSmall)
     val list=registry.all()
-    if(list.isEmpty())Text("No USB providers detected.")
+    if(list.isEmpty())Text("No hardware providers detected.")
     list.forEach{Text("${it.name} | ${it.transport} | connected=${it.connected} ready=${it.ready}\n${it.detail}")}
 }
 
@@ -77,11 +85,11 @@ class MainActivity:ComponentActivity() {
     Text(name,style=MaterialTheme.typography.headlineSmall)
     Text("Reader/RX: ${if(readReady)"provider detected" else "no compatible provider"}")
     Text("Writer/TX: ${if(writeReady)"provider detected" else "no compatible provider"}")
-    Text("A concrete driver is required before any RF I/O is enabled.")
+    Text("Native operation is used when the phone exposes suitable hardware. Otherwise a concrete documented external driver is required.")
 }
 
 @Composable private fun BlePane(requestBluetooth:()->Unit)=Column(
     Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
     Button(requestBluetooth){Text("Grant BLE permissions")}
-    Text("BLE scanner implementation is present; scan results are not fabricated.")
+    Text("BLE scanner uses the phone's native Bluetooth LE controller when available.")
 }
