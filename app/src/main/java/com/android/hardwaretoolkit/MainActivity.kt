@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.android.hardwaretoolkit.core.*
@@ -56,9 +57,7 @@ private fun ToolkitApp(requestBluetooth: () -> Unit) {
     val tabs = listOf("Dashboard", "Providers", "Sub-GHz", "LF RFID", "BLE")
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Android Hardware Toolkit 0.9.0") })
-        },
+        topBar = { TopAppBar(title = { Text("Android Hardware Toolkit 0.9.0") }) },
         bottomBar = {
             NavigationBar {
                 tabs.forEachIndexed { index, label ->
@@ -105,9 +104,7 @@ private fun Providers(registry: ProviderRegistry) = Column(
     val list = registry.all()
     if (list.isEmpty()) Text("No hardware providers detected.")
     list.forEach { provider ->
-        Text(
-            "${provider.name} | ${provider.transport} | connected=${provider.connected} ready=${provider.ready}\n${provider.detail}"
-        )
+        Text("${provider.name} | ${provider.transport} | connected=${provider.connected} ready=${provider.ready}\n${provider.detail}")
     }
 }
 
@@ -122,14 +119,14 @@ private fun RadioPane(
     Modifier.padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp)
 ) {
-    // Revision is deliberately read so provider changes trigger recomposition.
-    revision.hashCode()
-    val readReady = registry.find(rx).isNotEmpty()
-    val writeReady = registry.find(tx).isNotEmpty()
-    Text(name, style = MaterialTheme.typography.headlineSmall)
-    Text("Reader/RX: ${if (readReady) "provider detected" else "no compatible provider"}")
-    Text("Writer/TX: ${if (writeReady) "provider detected" else "no compatible provider"}")
-    Text("Native operation is used when the phone exposes suitable hardware. Otherwise a concrete documented external driver is required.")
+    key(revision) {
+        val readReady = registry.find(rx).isNotEmpty()
+        val writeReady = registry.find(tx).isNotEmpty()
+        Text(name, style = MaterialTheme.typography.headlineSmall)
+        Text("Reader/RX: ${if (readReady) "provider detected" else "no compatible provider"}")
+        Text("Writer/TX: ${if (writeReady) "provider detected" else "no compatible provider"}")
+        Text("Native operation is used when the phone exposes suitable hardware. Otherwise a concrete documented external driver is required.")
+    }
 }
 
 @Composable
