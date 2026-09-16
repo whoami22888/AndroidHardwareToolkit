@@ -12,7 +12,6 @@ object Hex {
     }
 
     fun decode(input: String): ByteArray {
-        val length = input.length
         val out = ByteArray(countNonWhitespace(input) / 2)
         var high: Int? = null
         var outputIndex = 0
