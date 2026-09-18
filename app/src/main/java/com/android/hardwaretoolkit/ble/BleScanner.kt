@@ -19,7 +19,6 @@ data class BleAdvertisement(
 
 class BleScanner(private val context: Context) {
     private val bluetoothManager by lazy { context.getSystemService(BluetoothManager::class.java) }
-    private val scanner get() = bluetoothManager?.adapter?.bluetoothLeScanner
     private var scanning = false
 
     var onAdvertisement: ((BleAdvertisement) -> Unit)? = null
@@ -28,21 +27,27 @@ class BleScanner(private val context: Context) {
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun safeDeviceName(device: BluetoothDevice): String {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return "Unknown"
+    private fun hasScanPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            hasPermission(Manifest.permission.BLUETOOTH_SCAN)
+        } else {
+            hasPermission(Manifest.permission.BLUETOOTH) &&
+                hasPermission(Manifest.permission.BLUETOOTH_ADMIN) &&
+                hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         }
+
+    private fun hasConnectPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+
+    private fun safeDeviceName(device: BluetoothDevice): String {
+        if (!hasConnectPermission()) return "Unknown"
         return runCatching { device.name }.getOrNull() ?: "Unknown"
     }
 
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
+            if (!hasScanPermission() || !hasConnectPermission()) return
 
             val record = result.scanRecord
             val manufacturer = record?.manufacturerSpecificData?.let { sparse ->
@@ -57,11 +62,10 @@ class BleScanner(private val context: Context) {
                 }
             } ?: ""
 
-            val name = safeDeviceName(result.device)
             onAdvertisement?.invoke(
                 BleAdvertisement(
                     address = result.device.address,
-                    name = name,
+                    name = safeDeviceName(result.device),
                     rssi = result.rssi,
                     serviceUuids = record?.serviceUuids?.map { it.uuid.toString() } ?: emptyList(),
                     manufacturerDataHex = manufacturer
@@ -79,18 +83,26 @@ class BleScanner(private val context: Context) {
     fun start(): Result<Unit> {
         if (scanning) return Result.success(Unit)
 
-        if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-            return Result.failure(SecurityException("BLUETOOTH_SCAN permission required"))
+        if (!hasScanPermission()) {
+            return Result.failure(SecurityException(requiredScanPermission()))
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        ) {
+        if (!hasConnectPermission()) {
             return Result.failure(SecurityException("BLUETOOTH_CONNECT permission required"))
         }
 
-        val adapter = bluetoothManager?.adapter
-            ?: return Result.failure(IllegalStateException("Bluetooth adapter unavailable"))
-        if (!adapter.isEnabled) {
+        val adapter = try {
+            bluetoothManager?.adapter
+        } catch (e: SecurityException) {
+            return Result.failure(e)
+        } ?: return Result.failure(IllegalStateException("Bluetooth adapter unavailable"))
+
+        val enabled = try {
+            adapter.isEnabled
+        } catch (e: SecurityException) {
+            return Result.failure(e)
+        }
+
+        if (!enabled) {
             return Result.failure(IllegalStateException("Bluetooth is disabled"))
         }
 
@@ -119,21 +131,28 @@ class BleScanner(private val context: Context) {
     fun stop() {
         if (!scanning) return
 
-        if (hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-            val bleScanner = try {
-                scanner
-            } catch (_: SecurityException) {
-                null
-            }
+        if (hasScanPermission() && hasConnectPermission()) {
+            val bleScanner = runCatching {
+                bluetoothManager?.adapter?.bluetoothLeScanner
+            }.getOrNull()
+
             if (bleScanner != null) {
-                try {
-                    bleScanner.stopScan(callback)
-                } catch (_: SecurityException) {
-                    // Permission can be revoked between the explicit check and the API call.
-                }
+                runCatching { bleScanner.stopScan(callback) }
+                    .onFailure { onError?.invoke(ERROR_STOP_PERMISSION) }
             }
         }
 
         scanning = false
+    }
+
+    private fun requiredScanPermission(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            "BLUETOOTH_SCAN permission required"
+        } else {
+            "BLUETOOTH, BLUETOOTH_ADMIN and ACCESS_FINE_LOCATION permissions required"
+        }
+
+    private companion object {
+        const val ERROR_STOP_PERMISSION = -1001
     }
 }
