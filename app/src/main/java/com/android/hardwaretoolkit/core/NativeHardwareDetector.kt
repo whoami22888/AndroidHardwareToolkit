@@ -100,8 +100,21 @@ class NativeHardwareDetector(private val context: Context) {
             )
         }
 
-        val adapter = runCatching { manager.adapter }.getOrNull()
-        val enabled = runCatching { adapter?.isEnabled == true }.getOrDefault(false)
+        val adapter = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            runCatching { manager.adapter }.getOrNull()
+        } else {
+            null
+        }
+        val enabled = if (adapter != null) {
+            runCatching { adapter.isEnabled }.getOrDefault(false)
+        } else {
+            false
+        }
 
         return HardwareProvider(
             id = "phone:ble",
