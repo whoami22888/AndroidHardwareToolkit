@@ -2,6 +2,7 @@ package com.android.hardwaretoolkit.usb
 
 import android.app.PendingIntent
 import android.content.*
+import androidx.core.content.IntentCompat
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import com.android.hardwaretoolkit.core.*
@@ -104,11 +105,6 @@ class UsbManagerBridge(private val context: Context, private val registry: Provi
         )
     }
 
-    @Suppress("DEPRECATION")
     private fun getUsbDevice(intent: Intent): UsbDevice? =
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
-        } else {
-            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-        }
+        IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
 }
