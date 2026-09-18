@@ -41,8 +41,20 @@ class BleScanner(private val context: Context) {
             hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
 
     private fun safeDeviceName(device: BluetoothDevice): String {
-        if (!hasConnectPermission()) return "Unknown"
-        return runCatching { device.name }.getOrNull() ?: "Unknown"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return "Unknown"
+        }
+
+        return try {
+            device.name ?: "Unknown"
+        } catch (_: SecurityException) {
+            "Unknown"
+        }
     }
 
     private val callback = object : ScanCallback() {
