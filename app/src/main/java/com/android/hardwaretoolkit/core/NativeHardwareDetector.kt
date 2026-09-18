@@ -70,20 +70,23 @@ class NativeHardwareDetector(private val context: Context) {
             )
         }
 
-        val connectRequired = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-        val scanPermission = if (connectRequired) {
+        val requiredScanPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Manifest.permission.BLUETOOTH_SCAN
         } else {
             Manifest.permission.ACCESS_FINE_LOCATION
         }
-        val connectPermissionReady =
-            !connectRequired || hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        val scanPermissionReady = hasPermission(scanPermission)
 
-        if (!connectPermissionReady || !scanPermissionReady) {
+        val scanPermissionReady = hasPermission(requiredScanPermission)
+        val connectPermissionReady =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+
+        if (!scanPermissionReady || !connectPermissionReady) {
             val missing = buildList {
-                if (!scanPermissionReady) add(scanPermission.substringAfterLast('.'))
-                if (!connectPermissionReady) add(Manifest.permission.BLUETOOTH_CONNECT.substringAfterLast('.'))
+                if (!scanPermissionReady) add(requiredScanPermission.substringAfterLast('.'))
+                if (!connectPermissionReady) {
+                    add(Manifest.permission.BLUETOOTH_CONNECT.substringAfterLast('.'))
+                }
             }.joinToString(", ")
 
             return HardwareProvider(
