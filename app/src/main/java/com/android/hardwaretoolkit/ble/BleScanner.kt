@@ -61,6 +61,16 @@ class BleScanner(private val context: Context) {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             if (!hasScanPermission() || !hasConnectPermission()) return
 
+            val device = result.device
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+
             val record = result.scanRecord
             val manufacturer = record?.manufacturerSpecificData?.let { sparse ->
                 buildString {
@@ -76,8 +86,8 @@ class BleScanner(private val context: Context) {
 
             onAdvertisement?.invoke(
                 BleAdvertisement(
-                    address = result.device.address,
-                    name = safeDeviceName(result.device),
+                    address = device.address,
+                    name = safeDeviceName(device),
                     rssi = result.rssi,
                     serviceUuids = record?.serviceUuids?.map { it.uuid.toString() } ?: emptyList(),
                     manufacturerDataHex = manufacturer
