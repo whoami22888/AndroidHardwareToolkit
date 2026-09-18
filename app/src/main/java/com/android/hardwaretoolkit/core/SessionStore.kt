@@ -2,6 +2,9 @@ package com.android.hardwaretoolkit.core
 
 import android.content.Context
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Instant
 import org.json.JSONArray
 import org.json.JSONObject
@@ -14,8 +17,8 @@ data class SessionEvent(
     val result: String
 )
 
-class SessionStore(private val context: Context) {
-    private val file: File get() = File(context.filesDir, "sessions.json")
+class SessionStore(context: Context) {
+    private val file = File(context.filesDir, "sessions.json")
     private var cached: JSONArray? = null
 
     @Synchronized
@@ -38,14 +41,14 @@ class SessionStore(private val context: Context) {
         val array = loadArray()
         return buildList(array.length()) {
             for (i in 0 until array.length()) {
-                val objectValue = array.getJSONObject(i)
+                val value = array.getJSONObject(i)
                 add(
                     SessionEvent(
-                        timestamp = objectValue.getString("timestamp"),
-                        providerId = objectValue.getString("providerId"),
-                        module = objectValue.getString("module"),
-                        action = objectValue.getString("action"),
-                        result = objectValue.getString("result")
+                        timestamp = value.getString("timestamp"),
+                        providerId = value.getString("providerId"),
+                        module = value.getString("module"),
+                        action = value.getString("action"),
+                        result = value.getString("result")
                     )
                 )
             }
@@ -55,7 +58,9 @@ class SessionStore(private val context: Context) {
     @Synchronized
     fun clear() {
         cached = JSONArray()
-        if (file.exists()) file.delete()
+        if (file.exists() && !file.delete()) {
+            throw IllegalStateException("Unable to delete session store")
+        }
     }
 
     @Synchronized
@@ -63,21 +68,41 @@ class SessionStore(private val context: Context) {
 
     private fun loadArray(): JSONArray {
         cached?.let { return it }
-        cached = if (file.exists()) {
-            runCatching { JSONArray(file.readText()) }.getOrElse { JSONArray() }
-        } else {
-            JSONArray()
+
+        if (!file.exists()) {
+            return JSONArray().also { cached = it }
         }
-        return cached!!
+
+        return try {
+            JSONArray(file.readText()).also { cached = it }
+        } catch (error: Exception) {
+            throw IllegalStateException("Session store is corrupt: ${file.absolutePath}", error)
+        }
     }
 
     private fun persist(array: JSONArray) {
         val temporary = File(file.parentFile, "${file.name}.tmp")
-        temporary.writeText(array.toString())
-        if (!temporary.renameTo(file)) {
-            temporary.delete()
-            throw IllegalStateException("Unable to atomically persist session data")
+        try {
+            temporary.writeText(array.toString())
+            try {
+                Files.move(
+                    temporary.toPath(),
+                    file.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING
+                )
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(
+                    temporary.toPath(),
+                    file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING
+                )
+            }
+            cached = array
+        } finally {
+            if (temporary.exists() && !temporary.delete()) {
+                throw IllegalStateException("Unable to remove temporary session store")
+            }
         }
-        cached = array
     }
 }
