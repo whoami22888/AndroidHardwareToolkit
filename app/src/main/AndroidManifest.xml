@@ -10,7 +10,7 @@
     <!-- Android 12+ Nearby Devices permissions. -->
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation"/>
+        />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
 
     <!-- Android 11 and lower BLE compatibility. -->
