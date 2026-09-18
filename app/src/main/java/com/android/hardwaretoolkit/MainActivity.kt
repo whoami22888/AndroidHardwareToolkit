@@ -157,7 +157,7 @@ private fun Providers(registry: ProviderRegistry) = LazyColumn(
         items(providers, key = { it.id }) { provider ->
             Text(
                 "${provider.name} | ${provider.transport} | " +
-                    "connected=${provider.connected} ready=${provider.ready}\\n${provider.detail}"
+                    "connected=${provider.connected} ready=${provider.ready}\n${provider.detail}"
             )
         }
     }
@@ -258,8 +258,8 @@ private fun BlePane(requestBluetooth: () -> Unit) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(advertisements.values.toList(), key = { it.address }) { advertisement ->
                 Text(
-                    "${advertisement.name} | ${advertisement.address} | RSSI ${advertisement.rssi}\\n" +
-                        "Services: ${advertisement.serviceUuids.joinToString()}\\n" +
+                    "${advertisement.name} | ${advertisement.address} | RSSI ${advertisement.rssi}\n" +
+                        "Services: ${advertisement.serviceUuids.joinToString()}\n" +
                         "Manufacturer: ${advertisement.manufacturerDataHex.ifEmpty { "none" }}"
                 )
             }
