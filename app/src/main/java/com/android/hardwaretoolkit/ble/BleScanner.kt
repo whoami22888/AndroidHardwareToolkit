@@ -149,8 +149,11 @@ class BleScanner(private val context: Context) {
             }.getOrNull()
 
             if (bleScanner != null) {
-                runCatching { bleScanner.stopScan(callback) }
-                    .onFailure { onError?.invoke(ERROR_STOP_PERMISSION) }
+                try {
+                    bleScanner.stopScan(callback)
+                } catch (_: SecurityException) {
+                    onError?.invoke(ERROR_STOP_PERMISSION)
+                }
             }
         }
 
