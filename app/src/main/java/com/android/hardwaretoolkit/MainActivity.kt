@@ -138,8 +138,8 @@ private fun Dashboard(registry: ProviderRegistry) = Column(
 ) {
     Text("v0.9 native + external hardware layer", style = MaterialTheme.typography.headlineSmall)
     Text("Phone-native hardware is detected through Android APIs; external hardware extends capabilities the handset does not physically expose.")
-    Text("Native providers: \${registry.all().count { it.transport == Transport.PHONE_NATIVE }}")
-    Text("External providers: \${registry.all().count { it.transport != Transport.PHONE_NATIVE }}")
+    Text("Native providers: ${registry.all().count { it.transport == Transport.PHONE_NATIVE }}")
+    Text("External providers: ${registry.all().count { it.transport != Transport.PHONE_NATIVE }}")
     Text("Unsupported Sub-GHz and LF RFID hardware is never simulated. A compatible physical adapter is required when the handset lacks that radio.")
 }
 
@@ -156,8 +156,8 @@ private fun Providers(registry: ProviderRegistry) = LazyColumn(
     } else {
         items(providers, key = { it.id }) { provider ->
             Text(
-                "\${provider.name} | \${provider.transport} | " +
-                    "connected=\${provider.connected} ready=\${provider.ready}\\n\${provider.detail}"
+                "${provider.name} | ${provider.transport} | " +
+                    "connected=${provider.connected} ready=${provider.ready}\\n${provider.detail}"
             )
         }
     }
@@ -178,8 +178,8 @@ private fun RadioPane(
         val readReady = registry.find(rx).isNotEmpty()
         val writeReady = registry.find(tx).isNotEmpty()
         Text(name, style = MaterialTheme.typography.headlineSmall)
-        Text("Reader/RX: \${if (readReady) "provider ready" else "no compatible provider"}")
-        Text("Writer/TX: \${if (writeReady) "provider ready" else "no compatible provider"}")
+        Text("Reader/RX: ${if (readReady) "provider ready" else "no compatible provider"}")
+        Text("Writer/TX: ${if (writeReady) "provider ready" else "no compatible provider"}")
         Text("No operation is reported as working unless a detected provider has a concrete driver.")
     }
 }
@@ -253,14 +253,14 @@ private fun BlePane(requestBluetooth: () -> Unit) {
         }
 
         error?.let { Text("Error: $it") }
-        Text("Advertisements: \${advertisements.size}")
+        Text("Advertisements: ${advertisements.size}")
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(advertisements.values.toList(), key = { it.address }) { advertisement ->
                 Text(
-                    "\${advertisement.name} | \${advertisement.address} | RSSI \${advertisement.rssi}\\n" +
-                        "Services: \${advertisement.serviceUuids.joinToString()}\\n" +
-                        "Manufacturer: \${advertisement.manufacturerDataHex.ifEmpty { "none" }}"
+                    "${advertisement.name} | ${advertisement.address} | RSSI ${advertisement.rssi}\\n" +
+                        "Services: ${advertisement.serviceUuids.joinToString()}\\n" +
+                        "Manufacturer: ${advertisement.manufacturerDataHex.ifEmpty { "none" }}"
                 )
             }
         }
