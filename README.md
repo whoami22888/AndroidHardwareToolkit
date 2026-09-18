@@ -1,6 +1,6 @@
 # Android Hardware Toolkit
 
-v0.8.0 source bundle: Android-first hardware capability and external-adapter architecture.
+v0.9.0 source bundle: Android-first hardware capability and external-adapter architecture.
 
 ## Scope
 
@@ -35,8 +35,8 @@ app/build/outputs/apk/debug/app-debug.apk
 
 ## Version
 
-0.8.0
+0.9.0
 
 ## Status
 
-Architecture and source-level validation completed for the v0.8 bundle. Physical hardware testing and APK compilation require an Android build environment and compatible test hardware.
+The application has a real native/external capability architecture, lifecycle-safe BLE permission handling, live BLE scanning UI, USB enumeration/permission handling, provider capability gating, and persistent session storage. Sub-GHz and LF RFID remain driver-dependent: no unsupported radio is simulated. Physical hardware validation remains required for hardware-specific operation.
