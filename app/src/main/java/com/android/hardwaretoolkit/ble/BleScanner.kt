@@ -95,6 +95,7 @@ class BleScanner(private val context: Context) {
         scanning = true
     }
 
+    @SuppressLint("MissingPermission")
     @Synchronized
     fun stop() {
         if (!scanning) return
