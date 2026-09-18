@@ -2,6 +2,7 @@ package com.android.hardwaretoolkit.usb
 
 import android.app.PendingIntent
 import android.content.*
+import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
@@ -38,10 +39,11 @@ class UsbManagerBridge(private val context: Context, private val registry: Provi
             }
         }
 
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             receiver,
             IntentFilter(ACTION_PERMISSION),
-            Context.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
         refresh(onChanged)
     }
