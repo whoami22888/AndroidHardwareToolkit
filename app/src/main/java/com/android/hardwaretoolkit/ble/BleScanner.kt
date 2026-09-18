@@ -1,7 +1,6 @@
 package com.android.hardwaretoolkit.ble
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.*
@@ -29,10 +28,12 @@ class BleScanner(private val context: Context) {
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
-    @SuppressLint("MissingPermission")
     private fun safeDeviceName(device: BluetoothDevice): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             return "Unknown"
         }
@@ -41,9 +42,7 @@ class BleScanner(private val context: Context) {
 
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-                return
-            }
+            if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
 
             val record = result.scanRecord
             val manufacturer = record?.manufacturerSpecificData?.let { sparse ->
@@ -76,32 +75,65 @@ class BleScanner(private val context: Context) {
         }
     }
 
-    @SuppressLint("MissingPermission")
     @Synchronized
-    fun start(): Result<Unit> = runCatching {
+    fun start(): Result<Unit> {
         if (scanning) return Result.success(Unit)
-        check(hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-            "BLUETOOTH_SCAN permission required"
+
+        if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
+            return Result.failure(SecurityException("BLUETOOTH_SCAN permission required"))
         }
-        check(bluetoothManager?.adapter?.isEnabled == true) { "Bluetooth is disabled" }
-        val bleScanner = scanner ?: error("BLE scanner unavailable")
-        bleScanner.startScan(
-            null,
-            ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                .build(),
-            callback
-        )
-        scanning = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+        ) {
+            return Result.failure(SecurityException("BLUETOOTH_CONNECT permission required"))
+        }
+
+        val adapter = bluetoothManager?.adapter
+            ?: return Result.failure(IllegalStateException("Bluetooth adapter unavailable"))
+        if (!adapter.isEnabled) {
+            return Result.failure(IllegalStateException("Bluetooth is disabled"))
+        }
+
+        val bleScanner = try {
+            adapter.bluetoothLeScanner
+        } catch (e: SecurityException) {
+            return Result.failure(e)
+        } ?: return Result.failure(IllegalStateException("BLE scanner unavailable"))
+
+        return try {
+            bleScanner.startScan(
+                null,
+                ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .build(),
+                callback
+            )
+            scanning = true
+            Result.success(Unit)
+        } catch (e: SecurityException) {
+            Result.failure(e)
+        }
     }
 
-    @SuppressLint("MissingPermission")
     @Synchronized
     fun stop() {
         if (!scanning) return
+
         if (hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-            runCatching { scanner?.stopScan(callback) }
+            val bleScanner = try {
+                scanner
+            } catch (_: SecurityException) {
+                null
+            }
+            if (bleScanner != null) {
+                try {
+                    bleScanner.stopScan(callback)
+                } catch (_: SecurityException) {
+                    // Permission can be revoked between the explicit check and the API call.
+                }
+            }
         }
+
         scanning = false
     }
 }
