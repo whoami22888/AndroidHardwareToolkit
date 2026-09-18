@@ -75,7 +75,7 @@ class UsbManagerBridge(private val context: Context, private val registry: Provi
             context,
             device.deviceId,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         usbManager.requestPermission(device, pi)
     }
