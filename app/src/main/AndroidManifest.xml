@@ -20,7 +20,8 @@
 
     <application
         android:allowBackup="true"
-        android:label="Android Hardware Toolkit"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.AndroidHardwareToolkit"
         android:supportsRtl="true">
         <activity
