@@ -26,6 +26,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          # Runner's preinstalled sdkmanager predates API 37; pin a modern cmdline-tools.
+          cmdline-tools-version: '11076708'
 
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
