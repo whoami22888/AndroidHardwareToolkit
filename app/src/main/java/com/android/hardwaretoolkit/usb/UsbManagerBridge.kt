@@ -32,17 +32,33 @@ class UsbManagerBridge(private val context: Context, private val registry: Provi
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {
-                if (intent.action != ACTION_PERMISSION) return
-                val device = getUsbDevice(intent) ?: return
-                register(device, runCatching { usbManager.hasPermission(device) }.getOrDefault(false))
-                onChanged()
+                when (intent.action) {
+                    ACTION_PERMISSION -> {
+                        val device = getUsbDevice(intent) ?: return
+                        register(device, runCatching { usbManager.hasPermission(device) }.getOrDefault(false))
+                        onChanged()
+                    }
+                    UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                        val device = getUsbDevice(intent) ?: return
+                        register(device, runCatching { usbManager.hasPermission(device) }.getOrDefault(false))
+                        onChanged()
+                    }
+                    UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                        val device = getUsbDevice(intent) ?: return
+                        registry.remove("usb:${device.deviceName}")
+                        onChanged()
+                    }
+                }
             }
         }
 
         ContextCompat.registerReceiver(
             context,
             receiver,
-            IntentFilter(ACTION_PERMISSION),
+            IntentFilter(ACTION_PERMISSION).apply {
+                addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+                addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            },
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
         refresh(onChanged)
@@ -80,8 +96,13 @@ class UsbManagerBridge(private val context: Context, private val registry: Provi
         usbManager.requestPermission(device, pi)
     }
 
+    /** Re-syncs registry entries with the currently connected device set (also prunes detached devices). */
     fun refresh(onChanged: () -> Unit = {}) {
         val usbManager = manager ?: return
+        val connectedIds = usbManager.deviceList.values.map { "usb:${it.deviceName}" }.toSet()
+        registry.all()
+            .filter { it.transport == Transport.USB && it.id !in connectedIds }
+            .forEach { registry.remove(it.id) }
         usbManager.deviceList.values.forEach { device ->
             val ready = runCatching { usbManager.hasPermission(device) }.getOrDefault(false)
             register(device, ready)

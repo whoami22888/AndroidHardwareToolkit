@@ -33,24 +33,22 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
 
-      - name: Set up Gradle
+      - name: Setup Gradle (wrapper, cached)
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.3.1'
-
-      - name: Verify Gradle and toolchain
-        run: |
-          gradle --version
-          gradle tasks --stacktrace
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Unit tests
-        run: gradle testDebugUnitTest --stacktrace
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Android lint
-        run: gradle lintDebug --stacktrace
+        run: ./gradlew lintDebug --stacktrace
 
       - name: Assemble debug APK
-        run: gradle assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Assemble release APK
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
