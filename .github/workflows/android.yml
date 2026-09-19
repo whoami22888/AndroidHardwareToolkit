@@ -26,12 +26,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
-        with:
-          # Runner's preinstalled sdkmanager predates API 37; pin a modern cmdline-tools.
-          cmdline-tools-version: '11076708'
 
-      - name: Install Android SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+      # android-37 platforms and build-tools 36.0.0 are preinstalled on ubuntu-24.04 runners.
 
       - name: Setup Gradle (wrapper, cached)
         uses: gradle/actions/setup-gradle@v6
