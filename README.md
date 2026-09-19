@@ -7,7 +7,7 @@ v0.9.0 source bundle: Android-first hardware capability and external-adapter arc
 The toolkit uses Android phone hardware where available and supports external hardware through explicit provider/driver interfaces. It does not pretend unsupported radios exist in the phone.
 
 - NFC / BLE / IR / USB Host foundations
-- USB device enumeration and Android permission lifecycle
+- USB device enumeration, permission lifecycle, and hot-plug (attach/detach) tracking
 - BLE scanning and GATT-oriented foundation
 - Persistent local JSON session store
 - Provider registry and capability gating
@@ -21,7 +21,7 @@ The current release deliberately does not falsely identify arbitrary USB devices
 
 ## Build
 
-Open this project in Android Studio with an installed Android SDK. Then run:
+Open this project in Android Studio with an installed Android SDK, or run:
 
 ```text
 ./gradlew assembleDebug
@@ -33,10 +33,30 @@ APK output:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
+Run the unit-test and lint gates locally:
+
+```text
+./gradlew testDebugUnitTest lintDebug
+```
+
+## Verified toolchain
+
+- Gradle wrapper 9.7.1 (AGP 9.1.1 requires Gradle ≥ 9.3.1)
+- Android Gradle Plugin 9.1.1 with **built-in Kotlin** (`android.builtInKotlin=true`); the standalone
+  `org.jetbrains.kotlin.android` plugin is intentionally absent because it conflicts with AGP 9
+- `org.jetbrains.kotlin.plugin.compose` 2.2.10 (required whenever Compose is enabled on Kotlin 2.x)
+- compileSdk 37 (Compose UI 1.12.x requires compiling against API 37), targetSdk 37, minSdk 26
+- Tests: `testDebugUnitTest` (15 tests), lint: `lintDebug` with `warningsAsErrors=true`
+
+## CI
+
+GitHub Actions (`.github/workflows/android.yml`) runs unit tests, lint, and debug/release assembly
+on every push/PR to `main` and uploads the debug APK as an artifact.
+
 ## Version
 
 0.9.0
 
 ## Status
 
-The application has a real native/external capability architecture, lifecycle-safe BLE permission handling, live BLE scanning UI, USB enumeration/permission handling, provider capability gating, and persistent session storage. Sub-GHz and LF RFID remain driver-dependent: no unsupported radio is simulated. Physical hardware validation remains required for hardware-specific operation.
+The application has a real native/external capability architecture, lifecycle-safe BLE permission handling, live BLE scanning UI, USB enumeration/permission/hot-plug handling, provider capability gating, and persistent session storage. Sub-GHz and LF RFID remain driver-dependent: no unsupported radio is simulated. Physical hardware validation remains required for hardware-specific operation — see `docs/MANUAL_TESTING.md`.

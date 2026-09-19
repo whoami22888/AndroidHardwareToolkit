@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.util.size
 
 data class BleAdvertisement(
     val address: String,
@@ -74,7 +75,7 @@ class BleScanner(private val context: Context) {
             val record = result.scanRecord
             val manufacturer = record?.manufacturerSpecificData?.let { sparse ->
                 buildString {
-                    for (i in 0 until sparse.size()) {
+                    for (i in 0 until sparse.size) {
                         if (i > 0) append(' ')
                         append("%04X:".format(sparse.keyAt(i)))
                         sparse.valueAt(i).forEach { byte ->
