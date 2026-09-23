@@ -1,7 +1,7 @@
 package com.android.hardwaretoolkit.nfc
 
 import android.app.Activity
-import android.nfc.Ndef
+import android.nfc.tech.Ndef
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import com.android.hardwaretoolkit.core.Hex
