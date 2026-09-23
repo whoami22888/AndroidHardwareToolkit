@@ -74,7 +74,7 @@ class NfcReader(private val activity: Activity) {
                         rawNdef = message.toByteArray()
                         message.records.forEach { record ->
                             records += NfcRecord(
-                                tnf = record.tnf,
+                                tnf = record.tnf.toInt(),
                                 typeHex = Hex.encode(record.type),
                                 payloadHex = Hex.encode(record.payload)
                             )
