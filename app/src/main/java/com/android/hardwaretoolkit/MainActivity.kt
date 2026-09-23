@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -190,13 +191,13 @@ private fun BlePane(requestBluetooth: () -> Unit) {
     val scanner = remember { BleScanner(context) }
     var scanning by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var advertisements by remember { mutableStateOf<Map<String, BleAdvertisement>>(emptyMap()) }
+    val advertisements = remember { mutableStateMapOf<String, BleAdvertisement>() }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     DisposableEffect(scanner) {
         scanner.onAdvertisement = { advertisement ->
             mainHandler.post {
-                advertisements = advertisements + (advertisement.address to advertisement)
+                advertisements[advertisement.address] = advertisement
             }
         }
         scanner.onError = { code ->
@@ -208,6 +209,7 @@ private fun BlePane(requestBluetooth: () -> Unit) {
 
         onDispose {
             scanner.stop()
+            mainHandler.removeCallbacksAndMessages(null)
             scanner.onAdvertisement = null
             scanner.onError = null
         }
