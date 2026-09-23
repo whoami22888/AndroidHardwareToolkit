@@ -16,36 +16,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Set up Java 17
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
-
-      # android-37 platforms and build-tools 36.0.0 are preinstalled on ubuntu-24.04 runners.
-
+        with:
+          cmdline-tools-version: '15859902'
       - name: Setup Gradle (wrapper, cached)
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
-
+      - name: Android instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          script: ./gradlew connectedDebugAndroidTest --stacktrace
       - name: Android lint
         run: ./gradlew lintDebug --stacktrace
-
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
-
       - name: Assemble release APK
         run: ./gradlew assembleRelease --stacktrace
-
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
